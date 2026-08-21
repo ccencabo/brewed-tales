@@ -1,0 +1,14 @@
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Book -->
+  <rect x="8" y="44" width="48" height="12" rx="2" fill="hsl(18, 65%, 45%)" stroke="hsl(25, 30%, 18%)" stroke-width="2" />
+  <rect x="8" y="44" width="6" height="12" rx="1" fill="hsl(18, 65%, 38%)" />
+  <line x1="18" y1="50" x2="50" y2="50" stroke="rgba(255, 255, 255, 0.3)" stroke-width="1" />
+
+  <!-- Coffee Cup -->
+  <path d="M24 28 L26 44 Q32 46 38 44 L40 28 Z" fill="hsl(37, 45%, 92%)" stroke="hsl(25, 30%, 18%)" stroke-width="2" stroke-linejoin="round" />
+  <path d="M40 32 Q46 32 46 36 Q46 40 40 40" stroke="hsl(25, 30%, 18%)" stroke-width="2" fill="none" stroke-linecap="round" />
+  
+  <!-- Steam (Static) -->
+  <path d="M28 22 Q30 16 26 10" stroke="hsl(25, 15%, 55%)" stroke-width="1.5" stroke-linecap="round" fill="none" />
+  <path d="M36 20 Q38 14 34 8" stroke="hsl(25, 15%, 55%)" stroke-width="1.5" stroke-linecap="round" fill="none" />
+</svg>

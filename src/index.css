@@ -1,0 +1,354 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 39 35% 93%;
+    --foreground: 24 35% 15%;
+
+    --card: 40 40% 95%;
+    --card-foreground: 24 35% 15%;
+
+    --popover: 40 40% 94%;
+    --popover-foreground: 24 35% 15%;
+
+    --primary: 16 60% 42%;
+    --primary-foreground: 40 45% 97%;
+
+    --secondary: 38 30% 84%;
+    --secondary-foreground: 24 30% 20%;
+
+    --muted: 38 20% 86%;
+    --muted-foreground: 24 12% 45%;
+
+    --accent: 30 65% 50%;
+    --accent-foreground: 40 45% 97%;
+
+    --destructive: 0 55% 48%;
+    --destructive-foreground: 40 45% 97%;
+
+    --border: 32 22% 78%;
+    --input: 32 22% 78%;
+    --ring: 16 60% 42%;
+
+    --radius: 0.75rem;
+
+    --warm: 26 50% 38%;
+    --warm-foreground: 40 45% 97%;
+    --cream: 42 50% 95%;
+    --parchment: 38 40% 86%;
+    --sage: 145 22% 52%;
+    --sage-foreground: 40 45% 97%;
+    --dusty-rose: 348 28% 62%;
+    --dusty-rose-foreground: 40 45% 97%;
+    --ink: 24 45% 12%;
+    --journal-line: 30 15% 80%;
+    --coffee-stain: 28 50% 70%;
+    --washi-pink: 350 40% 78%;
+    --washi-mint: 160 30% 75%;
+    --washi-gold: 42 60% 72%;
+    --tape-bg: 55 50% 88%;
+
+    --shadow-warm: 0 8px 32px -8px hsl(24 45% 12% / 0.15);
+    --shadow-card: 0 4px 16px -4px hsl(24 45% 12% / 0.1);
+    --shadow-journal:
+      2px 3px 8px hsl(24 45% 12% / 0.08), -1px -1px 0 hsl(40 40% 95% / 0.5);
+    --shadow-sticker: 1px 2px 4px hsl(24 45% 12% / 0.12);
+
+    --sidebar-background: 40 40% 92%;
+    --sidebar-foreground: 24 35% 15%;
+    --sidebar-primary: 16 60% 42%;
+    --sidebar-primary-foreground: 40 45% 97%;
+    --sidebar-accent: 38 30% 84%;
+    --sidebar-accent-foreground: 24 30% 20%;
+    --sidebar-border: 32 22% 78%;
+    --sidebar-ring: 16 60% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Lora", serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Playfair Display", serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Playfair Display", serif;
+  }
+
+  .font-body {
+    font-family: "Lora", serif;
+  }
+
+  .font-handwritten {
+    font-family: "Caveat", cursive;
+  }
+
+  .text-shadow-warm {
+    text-shadow: 0 2px 4px hsl(24 45% 12% / 0.1);
+  }
+
+  /* Journal paper texture — ruled lines + paper grain */
+  .paper-texture {
+    background-color: hsl(var(--background));
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 31px,
+        hsl(var(--journal-line) / 0.35) 31px,
+        hsl(var(--journal-line) / 0.35) 32px
+      ),
+      radial-gradient(
+        ellipse at 20% 50%,
+        hsl(var(--card) / 0.6) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 80% 20%,
+        hsl(var(--accent) / 0.04) 0%,
+        transparent 50%
+      );
+  }
+
+  /* Notebook page with margin line */
+  .notebook-page {
+    background-color: hsl(var(--card));
+    background-image:
+      linear-gradient(hsl(var(--dusty-rose) / 0.2) 1px, transparent 1px),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 31px,
+        hsl(var(--journal-line) / 0.25) 31px,
+        hsl(var(--journal-line) / 0.25) 32px
+      );
+    background-size:
+      100% 100%,
+      100% 32px;
+    background-position:
+      48px 0,
+      0 8px;
+  }
+
+  /* Coffee ring stain */
+  .coffee-ring {
+    position: relative;
+  }
+  .coffee-ring::after {
+    content: "";
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid hsl(var(--coffee-stain) / 0.15);
+    top: -20px;
+    right: -15px;
+    transform: rotate(-12deg);
+    pointer-events: none;
+  }
+
+  /* Washi tape decorations */
+  .washi-tape {
+    position: relative;
+  }
+  .washi-tape::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    width: 80px;
+    height: 24px;
+    background: hsl(var(--tape-bg) / 0.85);
+    border-left: 2px dashed hsl(var(--washi-gold) / 0.3);
+    border-right: 2px dashed hsl(var(--washi-gold) / 0.3);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .washi-tape-pink::before {
+    background: hsl(var(--washi-pink) / 0.5);
+    border-color: hsl(var(--washi-pink) / 0.3);
+  }
+
+  .washi-tape-mint::before {
+    background: hsl(var(--washi-mint) / 0.5);
+    border-color: hsl(var(--washi-mint) / 0.3);
+  }
+
+  /* Torn paper edge */
+  .torn-edge-bottom {
+    mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 500 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,0 L500,0 L500,8 Q495,16 490,8 Q485,0 480,8 Q475,14 470,8 Q465,2 460,8 Q455,16 450,8 Q445,0 440,8 Q435,14 430,8 Q425,2 420,8 Q415,14 410,8 Q405,2 400,8 Q395,14 390,8 Q385,0 380,8 Q375,16 370,8 Q365,2 360,8 Q355,14 350,8 Q345,0 340,8 Q335,16 330,8 Q325,2 320,8 Q315,14 310,8 Q305,0 300,8 Q295,14 290,8 Q285,2 280,8 Q275,16 270,8 Q265,0 260,8 Q255,14 250,8 Q245,2 240,8 Q235,14 230,8 Q225,0 220,8 Q215,16 210,8 Q205,2 200,8 Q195,14 190,8 Q185,0 180,8 Q175,16 170,8 Q165,2 160,8 Q155,14 150,8 Q145,0 140,8 Q135,14 130,8 Q125,2 120,8 Q115,16 110,8 Q105,0 100,8 Q95,14 90,8 Q85,2 80,8 Q75,14 70,8 Q65,0 60,8 Q55,16 50,8 Q45,2 40,8 Q35,14 30,8 Q25,0 20,8 Q15,14 10,8 Q5,2 0,8 Z' fill='white'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 500 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,0 L500,0 L500,8 Q495,16 490,8 Q485,0 480,8 Q475,14 470,8 Q465,2 460,8 Q455,16 450,8 Q445,0 440,8 Q435,14 430,8 Q425,2 420,8 Q415,14 410,8 Q405,2 400,8 Q395,14 390,8 Q385,0 380,8 Q375,16 370,8 Q365,2 360,8 Q355,14 350,8 Q345,0 340,8 Q335,16 330,8 Q325,2 320,8 Q315,14 310,8 Q305,0 300,8 Q295,14 290,8 Q285,2 280,8 Q275,16 270,8 Q265,0 260,8 Q255,14 250,8 Q245,2 240,8 Q235,14 230,8 Q225,0 220,8 Q215,16 210,8 Q205,2 200,8 Q195,14 190,8 Q185,0 180,8 Q175,16 170,8 Q165,2 160,8 Q155,14 150,8 Q145,0 140,8 Q135,14 130,8 Q125,2 120,8 Q115,16 110,8 Q105,0 100,8 Q95,14 90,8 Q85,2 80,8 Q75,14 70,8 Q65,0 60,8 Q55,16 50,8 Q45,2 40,8 Q35,14 30,8 Q25,0 20,8 Q15,14 10,8 Q5,2 0,8 Z' fill='white'/%3E%3C/svg%3E");
+    mask-size: 100% 16px;
+    -webkit-mask-size: 100% 16px;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: bottom;
+    -webkit-mask-position: bottom;
+    padding-bottom: 16px;
+  }
+
+  /* Sketch-style dashed border */
+  .sketch-border {
+    border: 2px dashed hsl(var(--border));
+    border-radius: var(--radius);
+    position: relative;
+  }
+
+  /* Paper fold corner */
+  .dog-ear {
+    position: relative;
+    overflow: hidden;
+  }
+  .dog-ear::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 29px;
+    height: 29px;
+    background: linear-gradient(
+      225deg,
+      hsl(var(--background)) 50%,
+      hsl(var(--border)) 50%,
+      hsl(var(--parchment)) 55%,
+      hsl(var(--card)) 100%
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Sticker style */
+  .sticker {
+    background: hsl(var(--card));
+    border: 1.5px solid hsl(var(--border));
+    border-radius: 50%;
+    box-shadow: var(--shadow-sticker);
+    transform: rotate(-5deg);
+  }
+
+  /* Ink splatter dot decoration */
+  .ink-dots::before {
+    content: "• • •";
+    display: block;
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+    letter-spacing: 0.5em;
+    font-size: 0.6rem;
+    opacity: 0.4;
+  }
+
+  /* Journal divider */
+  .journal-divider {
+    border: none;
+    height: 1px;
+    background: repeating-linear-gradient(
+      90deg,
+      hsl(var(--border)),
+      hsl(var(--border)) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-8px) rotate(1deg);
+    }
+  }
+
+  @keyframes gentle-bounce {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes page-turn {
+    0% {
+      transform: rotateY(0deg);
+    }
+    100% {
+      transform: rotateY(-180deg);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  @keyframes scribble {
+    0%,
+    100% {
+      transform: rotate(-1deg) scale(1);
+    }
+    25% {
+      transform: rotate(0.5deg) scale(1.01);
+    }
+    50% {
+      transform: rotate(-0.5deg) scale(1);
+    }
+    75% {
+      transform: rotate(1deg) scale(0.99);
+    }
+  }
+
+  @keyframes tape-wiggle {
+    0%,
+    100% {
+      transform: translateX(-50%) rotate(-2deg);
+    }
+    50% {
+      transform: translateX(-50%) rotate(-1deg);
+    }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-gentle-bounce {
+    animation: gentle-bounce 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  .animate-scribble {
+    animation: scribble 4s ease-in-out infinite;
+  }
+}
