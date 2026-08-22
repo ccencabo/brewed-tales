@@ -4,12 +4,15 @@ import WelcomeScreen from "../components/WelcomeScreen";
 import QuizScreen from "../components/QuizScreen";
 import BrewingComplete from "../components/BrewingComplete";
 import BlindDateReveal from "../components/BlindDateReveal";
+import ReaderHome from "../components/ReaderHome";
+import { useAuth } from "../hooks/useAuth";
 import { fetchMatchesFromAnswers } from "../lib/googleBooks";
 import type { Book } from "../data/books";
 
 type Screen = "welcome" | "quiz" | "brewing" | "results";
 
 const Index = () => {
+  const { user, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>("welcome");
   const [matchedBooks, setMatchedBooks] = useState<Book[]>([]);
   const [lastAnswers, setLastAnswers] = useState<Record<string, string>>({});
@@ -78,7 +81,15 @@ const Index = () => {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
       >
-        {screen === "welcome" && (
+        {screen === "welcome" && loading && (
+          <div className="paper-texture min-h-screen" />
+        )}
+
+        {screen === "welcome" && !loading && user && (
+          <ReaderHome user={user} onStart={() => setScreen("quiz")} />
+        )}
+
+        {screen === "welcome" && !loading && !user && (
           <WelcomeScreen onStart={() => setScreen("quiz")} />
         )}
 

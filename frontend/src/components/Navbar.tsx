@@ -1,13 +1,43 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { BellRing, LogIn, UserRound } from "lucide-react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { fetchExchanges } from "../lib/exchanges";
 
 const Navbar = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const [pendingExchanges, setPendingExchanges] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const controller = new AbortController();
+    fetchExchanges(controller.signal)
+      .then((exchanges) =>
+        setPendingExchanges(
+          exchanges.filter((exchange) => exchange.actionRequired).length,
+        ),
+      )
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [user]);
+
+  if (["/auth", "/login", "/signup"].includes(location.pathname)) {
+    return null;
+  }
+
   return (
     <>
+      <div
+        aria-hidden="true"
+        className="fixed inset-x-0 top-0 z-40 h-24 border-b border-border/70 bg-background/95 shadow-sm backdrop-blur-md"
+      />
+
       {/* Top-left Logo */}
       <Link
         to="/"
-        className="fixed top-6 left-16 md:left-24 z-50 flex items-center gap-3 group select-none hover:opacity-80 transition-opacity"
+        className="group fixed left-16 top-4 z-50 flex items-center gap-3 rounded-sm px-2 py-1 transition-colors hover:bg-card/70 md:left-24"
       >
         <motion.svg
           viewBox="0 0 64 64"
@@ -95,28 +125,100 @@ const Navbar = () => {
       {/* Top-right Navigation - Journal Label Style */}
       <nav
         aria-label="Main navigation"
-        className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-sm border-2 border-dashed border-border/50 bg-background/90 px-4 py-2 shadow-sm backdrop-blur-sm transition-transform sm:bottom-auto sm:left-auto sm:right-6 sm:top-6 sm:translate-x-0 sm:rotate-1 sm:gap-6 sm:px-8 sm:py-3 sm:hover:rotate-0 md:right-12"
+        className="fixed bottom-4 left-1/2 z-50 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 overflow-x-auto whitespace-nowrap rounded-sm border-2 border-dashed border-border/50 bg-background/90 px-3 py-2 shadow-sm backdrop-blur-sm transition-transform sm:bottom-auto sm:left-auto sm:right-6 sm:top-6 sm:max-w-none sm:translate-x-0 sm:rotate-1 sm:gap-4 sm:overflow-visible sm:px-6 sm:py-3 sm:hover:rotate-0 md:right-12"
       >
         {/* Washi tape holding the navbar */}
         <div className="absolute -top-3 left-4 w-12 h-5 bg-washi-pink/40 -rotate-6 pointer-events-none rounded-sm" />
         <div className="absolute -top-2 right-4 w-10 h-4 bg-washi-mint/40 rotate-6 pointer-events-none rounded-sm" />
 
-        <Link
-          to="/community"
-          className="font-handwritten text-lg text-foreground transition-all hover:-translate-y-0.5 hover:text-primary md:text-2xl"
-        >
-          Shelf Match 📚
-        </Link>
+        {!loading && user ? (
+          <>
+            <NavLink
+              to="/community"
+              className={({ isActive }) =>
+                `font-handwritten text-lg transition-all hover:-translate-y-0.5 hover:text-primary md:text-xl ${
+                  isActive
+                    ? "text-primary underline decoration-dashed underline-offset-4"
+                    : "text-foreground"
+                }`
+              }
+            >
+              Shelf Match
+            </NavLink>
 
-        {/* Pen-drawn divider */}
-        <div className="w-px h-6 bg-border/60 rotate-12" />
+            <div className="h-6 w-px rotate-12 bg-border/60" />
 
-        <Link
-          to="/library"
-          className="font-handwritten text-lg text-foreground transition-all hover:-translate-y-0.5 hover:text-primary md:text-2xl"
-        >
-          ♡ My Library
-        </Link>
+            <NavLink
+              to="/exchanges"
+              className={({ isActive }) =>
+                `relative flex items-center gap-1 font-handwritten text-lg transition-all hover:-translate-y-0.5 hover:text-primary md:text-xl ${
+                  isActive
+                    ? "text-primary underline decoration-dashed underline-offset-4"
+                    : "text-foreground"
+                }`
+              }
+            >
+              <BellRing className="h-4 w-4" /> Exchanges
+              {pendingExchanges > 0 && (
+                <span className="absolute -right-3 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-body text-[10px] text-primary-foreground">
+                  {pendingExchanges}
+                </span>
+              )}
+            </NavLink>
+
+            <div className="h-6 w-px rotate-12 bg-border/60" />
+
+            <NavLink
+              to="/library"
+              className={({ isActive }) =>
+                `font-handwritten text-lg transition-all hover:-translate-y-0.5 hover:text-primary md:text-xl ${
+                  isActive
+                    ? "text-primary underline decoration-dashed underline-offset-4"
+                    : "text-foreground"
+                }`
+              }
+            >
+              My Library
+            </NavLink>
+
+            <div className="h-6 w-px rotate-12 bg-border/60" />
+
+            <NavLink
+              to="/profile"
+              aria-label={`${user.displayName}'s profile`}
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 font-handwritten text-lg transition-all hover:-translate-y-0.5 hover:text-primary md:text-xl ${
+                  isActive
+                    ? "text-primary underline decoration-dashed underline-offset-4"
+                    : "text-foreground"
+                }`
+              }
+            >
+              <UserRound className="h-5 w-5" />
+              <span>Profile</span>
+            </NavLink>
+          </>
+        ) : !loading ? (
+          <>
+            <Link
+              to="/login"
+              className="flex items-center gap-1.5 font-handwritten text-lg text-foreground transition-all hover:-translate-y-0.5 hover:text-primary md:text-xl"
+            >
+              <LogIn className="h-4 w-4" /> Log in
+            </Link>
+            <div className="h-6 w-px rotate-12 bg-border/60" />
+            <Link
+              to="/signup"
+              className="rounded-sm bg-primary px-3 py-1 font-handwritten text-lg text-primary-foreground transition hover:shadow-warm md:text-xl"
+            >
+              Join
+            </Link>
+          </>
+        ) : (
+          <span className="font-handwritten text-lg text-muted-foreground">
+            Checking card...
+          </span>
+        )}
       </nav>
     </>
   );

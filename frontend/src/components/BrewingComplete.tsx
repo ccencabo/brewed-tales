@@ -14,7 +14,7 @@ const BrewingComplete = ({ ingredients, onComplete }: BrewingCompleteProps) => {
   }, [onComplete]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 paper-texture relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 pb-24 pt-32 paper-texture relative overflow-hidden">
       {/* Notebook edges */}
       <div className="fixed left-3 top-0 bottom-0 flex flex-col justify-center gap-8 pointer-events-none">
         {[...Array(8)].map((_, i) => (
