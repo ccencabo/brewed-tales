@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ShelfListingStatus {
+  AVAILABLE
+  MATCHED
+  REMOVED
+}
+
+enum ShelfMatchStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  email        String         @unique @db.VarChar(320)
+  displayName  String         @map("display_name") @db.VarChar(80)
+  passwordHash String?        @map("password_hash") @db.VarChar(255)
+  listings     ShelfListing[]
+  shelfMatches ShelfMatch[]
+  savedBooks   SavedBook[]
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("users")
+}
+
+model SavedBook {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalBookId String   @map("external_book_id") @db.VarChar(255)
+  title          String   @db.VarChar(300)
+  author         String   @db.VarChar(200)
+  emoji          String   @db.VarChar(16)
+  coverColor     String   @map("cover_color") @db.VarChar(50)
+  coverUrl       String?  @map("cover_url") @db.VarChar(1000)
+  clue1          String   @db.VarChar(500)
+  clue2          String   @db.VarChar(500)
+  clue3          String   @db.VarChar(500)
+  ingredients    String[] @default([])
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([userId, externalBookId])
+  @@index([userId, createdAt])
+  @@map("saved_books")
+}
+
+model ShelfListing {
+  id          Int                @id @default(autoincrement())
+  ownerId     Int                @map("owner_id")
+  owner       User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  coverColor  String             @map("cover_color") @db.VarChar(50)
+  emoji       String             @db.VarChar(16)
+  hook1       String             @db.VarChar(280)
+  hook2       String             @db.VarChar(280)
+  hook3       String             @db.VarChar(280)
+  publicationYear Int?           @map("publication_year") @db.SmallInt
+  ingredients String[]           @default([])
+  matchTags   String[]           @default([]) @map("match_tags")
+  status      ShelfListingStatus @default(AVAILABLE)
+  shelfMatches ShelfMatch[]
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([ownerId])
+  @@index([status, createdAt])
+  @@map("shelf_listings")
+}
+
+model ShelfMatch {
+  id             Int              @id @default(autoincrement())
+  listingId      Int              @map("listing_id")
+  listing        ShelfListing     @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  requesterId    Int              @map("requester_id")
+  requester      User             @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  preferenceTags String[]         @default([]) @map("preference_tags")
+  status         ShelfMatchStatus @default(PENDING)
+  respondedAt    DateTime?        @map("responded_at") @db.Timestamptz(3)
+  ownerCompletedAt DateTime?      @map("owner_completed_at") @db.Timestamptz(3)
+  requesterCompletedAt DateTime?  @map("requester_completed_at") @db.Timestamptz(3)
+  cancelledAt    DateTime?        @map("cancelled_at") @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([requesterId, createdAt])
+  @@map("shelf_matches")
+}
