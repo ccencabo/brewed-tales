@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import BookStackCoffee from "./BookStackCoffee";
 import Navbar from "./Navbar";
 
@@ -8,7 +9,7 @@ interface WelcomeScreenProps {
 
 const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 paper-texture overflow-hidden relative">
+    <div className="paper-texture relative flex min-h-screen flex-col items-center justify-center overflow-x-hidden px-4 pb-32 pt-28 sm:py-24">
       {/* Universal Navbar */}
       <Navbar />
 
@@ -116,7 +117,7 @@ const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
             transition={{ delay: 0.6, duration: 0.4 }}
             className="text-xl md:text-2xl font-handwritten text-primary mt-2 tracking-wide"
           >
-            ✧ Book Blind Date ✧
+            ✦ Personal book recommendations ✦
           </motion.p>
         </div>
 
@@ -126,8 +127,8 @@ const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
           transition={{ delay: 0.7, duration: 0.5 }}
           className="text-base text-muted-foreground font-body mb-8 leading-relaxed italic"
         >
-          Answer a few cozy questions, and we'll match you with
-          <br />a mystery book wrapped just for you.
+          Not sure what to read next? Answer a few cozy questions and
+          <br />get recommendations picked for your reading mood.
         </motion.p>
 
         {/* Journal-style CTA button */}
@@ -142,9 +143,26 @@ const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
             className="px-8 py-3 rounded-md bg-primary text-primary-foreground font-handwritten text-2xl
               shadow-journal hover:shadow-warm transition-all duration-200 border border-primary/20"
           >
-            Find My Match ☕
+            Find My Next Read ☕
           </motion.button>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.05 }}
+          className="mx-auto mt-5 max-w-sm rounded-sm border border-dashed border-border bg-card/55 px-4 py-3"
+        >
+          <p className="font-body text-xs italic text-muted-foreground">
+            Want a book from another reader instead?
+          </p>
+          <Link
+            to="/community"
+            className="font-handwritten text-xl text-primary underline decoration-dashed underline-offset-4 transition hover:text-accent"
+          >
+            Find a Community Shelf Match →
+          </Link>
+        </motion.div>
 
         {/* Small handwritten note */}
         <motion.p

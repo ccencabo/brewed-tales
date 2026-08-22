@@ -65,11 +65,11 @@ const BlindDateReveal = ({
           ~ the reveal ~
         </p>
         <h1 className="text-4xl md:text-5xl font-handwritten text-foreground mb-3">
-          Your Blind Dates Are Ready
+          Your Next Reads Are Ready
         </h1>
         <div className="journal-divider w-48 mx-auto mb-3" />
         <p className="text-muted-foreground font-body text-base italic">
-          Tap a wrapped book to unwrap your match ✨
+          Tap a wrapped book to reveal a recommendation ✨
         </p>
       </motion.div>
 
@@ -203,7 +203,7 @@ const BlindDateReveal = ({
                           className="flex-1 py-2.5 rounded-sm bg-primary text-primary-foreground font-handwritten text-xl
                             hover:shadow-warm hover:-translate-y-0.5 transition-all duration-200 border border-primary/20"
                         >
-                          It's a Match 💘
+                          This Is My Next Read 💘
                         </button>
                         <button
                           onClick={() => handleSave(book)}

@@ -133,7 +133,7 @@ const Library = () => {
         </h1>
         <div className="journal-divider w-56 mx-auto my-3" />
         <p className="font-body italic text-muted-foreground">
-          Every match you've fallen for — pressed between these pages.
+          Your recommended reads and community exchanges, pressed between these pages.
         </p>
       </motion.div>
 
@@ -151,8 +151,8 @@ const Library = () => {
             {t === "all"
               ? "All ♡"
               : t === "blind_date"
-                ? "Blind Dates ✦"
-                : "Shelf Matches 📚"}
+                ? "Next Reads ✦"
+                : "Shelf Exchanges 📚"}
           </button>
         ))}
       </div>
@@ -166,7 +166,7 @@ const Library = () => {
             to="/"
             className="font-handwritten text-xl text-primary underline underline-offset-4"
           >
-            find your first match →
+            find your next read →
           </Link>
         </div>
       ) : (
@@ -242,7 +242,7 @@ const Library = () => {
 
                 <div className="flex justify-between items-center mt-3 pt-2 border-t border-border/50">
                   <span className="text-[10px] font-handwritten text-muted-foreground/60 uppercase tracking-wider">
-                    {s.kind === "blind_date" ? "blind date" : "shelf match"}
+                    {s.kind === "blind_date" ? "next read" : "shelf exchange"}
                   </span>
                   <button
                     onClick={() => remove(s.id)}

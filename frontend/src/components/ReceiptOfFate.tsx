@@ -74,7 +74,7 @@ const ReceiptOfFate = ({ book, ingredients, onClose }: ReceiptOfFateProps) => {
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: "My Receipt of Fate 📜",
-          text: `I got matched with "${book.title}" by ${book.author} on a blind book date!`,
+          text: `My next read is "${book.title}" by ${book.author}, picked on a blind book date!`,
           files: [file],
         });
       } else {
@@ -168,9 +168,9 @@ const ReceiptOfFate = ({ book, ingredients, onClose }: ReceiptOfFateProps) => {
               ----------------------
             </p>
 
-            {/* The match */}
+            {/* The recommendation */}
             <p className="text-[9px] tracking-[0.2em] uppercase opacity-50 mb-1">
-              YOUR FATED MATCH:
+              YOUR NEXT READ:
             </p>
             <div className="text-center py-2">
               <p className="text-xl mb-0.5">{book.emoji}</p>

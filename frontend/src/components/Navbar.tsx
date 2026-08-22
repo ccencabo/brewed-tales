@@ -93,16 +93,19 @@ const Navbar = () => {
       </Link>
 
       {/* Top-right Navigation - Journal Label Style */}
-      <nav className="fixed top-6 right-6 md:right-12 z-50 flex items-center gap-6 px-8 py-3 bg-background/70 backdrop-blur-sm border-2 border-dashed border-border/50 rounded-sm shadow-sm rotate-1 transition-transform hover:rotate-0">
+      <nav
+        aria-label="Main navigation"
+        className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-sm border-2 border-dashed border-border/50 bg-background/90 px-4 py-2 shadow-sm backdrop-blur-sm transition-transform sm:bottom-auto sm:left-auto sm:right-6 sm:top-6 sm:translate-x-0 sm:rotate-1 sm:gap-6 sm:px-8 sm:py-3 sm:hover:rotate-0 md:right-12"
+      >
         {/* Washi tape holding the navbar */}
         <div className="absolute -top-3 left-4 w-12 h-5 bg-washi-pink/40 -rotate-6 pointer-events-none rounded-sm" />
         <div className="absolute -top-2 right-4 w-10 h-4 bg-washi-mint/40 rotate-6 pointer-events-none rounded-sm" />
 
         <Link
           to="/community"
-          className="font-handwritten text-xl md:text-2xl text-foreground hover:text-primary transition-all hover:-translate-y-0.5"
+          className="font-handwritten text-lg text-foreground transition-all hover:-translate-y-0.5 hover:text-primary md:text-2xl"
         >
-          Community Shelf 📚
+          Shelf Match 📚
         </Link>
 
         {/* Pen-drawn divider */}
@@ -110,7 +113,7 @@ const Navbar = () => {
 
         <Link
           to="/library"
-          className="font-handwritten text-xl md:text-2xl text-foreground hover:text-primary transition-all hover:-translate-y-0.5"
+          className="font-handwritten text-lg text-foreground transition-all hover:-translate-y-0.5 hover:text-primary md:text-2xl"
         >
           ♡ My Library
         </Link>

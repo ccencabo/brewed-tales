@@ -85,7 +85,7 @@ const BrewingComplete = ({ ingredients, onComplete }: BrewingCompleteProps) => {
         animate={{ opacity: [0, 1, 1], y: [10, 0, 0] }}
         transition={{ duration: 1.5, delay: 2 }}
       >
-        Let's find your perfect match ✨
+        Let’s brew your next read ✨
       </motion.p>
 
       {/* Floating ingredients recap */}
