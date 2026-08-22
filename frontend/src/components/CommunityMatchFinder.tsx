@@ -10,6 +10,7 @@ export interface ShelfMatchListing {
   hook1: string;
   hook2: string;
   hook3: string;
+  publication_year: number | null;
   ingredients: string[];
   status: string;
   owner_name?: string;
@@ -51,6 +52,31 @@ const questions: MatchQuestion[] = [
     ],
   },
   {
+    id: "era",
+    eyebrow: "Third sip",
+    question: "When should this story come from?",
+    options: [
+      {
+        label: "A classic",
+        note: "Published before 2000",
+        emoji: "⌛",
+        tags: ["era:classic"],
+      },
+      {
+        label: "Something newer",
+        note: "Published from 2000 onward",
+        emoji: "🌱",
+        tags: ["era:recent"],
+      },
+      {
+        label: "Either era",
+        note: "Let the shelf surprise me",
+        emoji: "📚",
+        tags: ["era:any"],
+      },
+    ],
+  },
+  {
     id: "spark",
     eyebrow: "Final note",
     question: "What would make the match feel just right?",
@@ -70,15 +96,35 @@ const CommunityMatchFinder = ({ listings, onClose, onMatch }: CommunityMatchFind
 
   const rankedListings = useMemo(() => {
     const selectedTags = answers.flat();
+    const eraPreference = selectedTags
+      .find((tag) => tag.startsWith("era:"))
+      ?.slice("era:".length);
+    const preferenceTags = selectedTags.filter(
+      (tag) => !tag.startsWith("era:"),
+    );
+
     return [...listings]
-      .filter((listing) => listing.status === "available")
+      .filter((listing) => {
+        if (listing.status !== "available") return false;
+        if (!eraPreference || eraPreference === "any") return true;
+        if (listing.publication_year === null) return true;
+        return eraPreference === "classic"
+          ? listing.publication_year < 2000
+          : listing.publication_year >= 2000;
+      })
       .map((listing, index) => ({
         listing,
         index,
-        score: listing.match_tags.reduce(
-          (total, tag) => total + (selectedTags.includes(tag) ? 1 : 0),
-          0,
-        ),
+        score:
+          listing.match_tags.reduce(
+            (total, tag) => total + (preferenceTags.includes(tag) ? 1 : 0),
+            0,
+          ) +
+          (eraPreference &&
+          eraPreference !== "any" &&
+          listing.publication_year !== null
+            ? 2
+            : 0),
       }))
       .sort((a, b) => b.score - a.score || a.index - b.index)
       .map(({ listing }) => listing);
@@ -220,6 +266,11 @@ const CommunityMatchFinder = ({ listings, onClose, onMatch }: CommunityMatchFind
               </div>
               <div>
                 <p className="font-handwritten text-lg text-primary">Your shelf match is from {result.owner_name || "a fellow reader"}</p>
+                {result.publication_year && (
+                  <p className="mt-1 font-handwritten text-base text-muted-foreground">
+                    first published in {result.publication_year}
+                  </p>
+                )}
                 <div className="journal-divider my-3" />
                 <div className="space-y-3">
                   {[result.hook1, result.hook2, result.hook3].map((hook) => (

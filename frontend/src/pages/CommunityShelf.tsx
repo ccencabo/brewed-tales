@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookHeart, Search, Users } from "lucide-react";
@@ -9,141 +9,176 @@ import ListBookForm from "../components/ListBookForm";
 import CommunityMatchFinder, {
   type ShelfMatchListing,
 } from "../components/CommunityMatchFinder";
+import {
+  claimShelfListing,
+  fetchCommunityShelfListings,
+  removeShelfListing,
+  type CommunityShelfListingDto,
+} from "../lib/communityShelf";
 
 interface Listing extends ShelfMatchListing {
   user_id: string;
   matched_by: string | null;
   created_at: string;
   owner_email?: string;
+  is_owner: boolean;
 }
 
-// Frontend-only sample profiles. The backend can later provide these tags with each listing.
-const MOCK_LISTINGS: Listing[] = [
-  {
-    id: "1",
-    user_id: "mock-user-1",
-    cover_color: "bg-sage",
-    emoji: "🌿",
-    hook1: "A secluded cabin in the woods...",
-    hook2: "Someone is watching from the trees.",
-    hook3: "The protagonist has a dark secret.",
-    ingredients: ["matcha", "honey"],
-    match_tags: ["mystery", "tense", "secrets", "atmospheric", "twisty"],
-    status: "available",
-    matched_by: null,
-    created_at: new Date().toISOString(),
-    owner_email: "reader1@example.com",
-    owner_name: "Alice",
-  },
-  {
-    id: "2",
-    user_id: "mock-user-2",
-    cover_color: "bg-dusty-rose",
-    emoji: "💌",
-    hook1: "Enemies who must share one horse.",
-    hook2: "A kingdom on the brink of war.",
-    hook3: "They slowly realize they are soulmates.",
-    ingredients: ["earl grey", "lavender"],
-    match_tags: ["romance", "heartfelt", "adventure", "character", "slow-burn"],
-    status: "available",
-    matched_by: null,
-    created_at: new Date().toISOString(),
-    owner_email: "reader2@example.com",
-    owner_name: "Ben",
-  },
-  {
-    id: "3",
-    user_id: "mock-user-3",
-    cover_color: "bg-warm",
-    emoji: "🐉",
-    hook1: "A map that redraws itself every midnight.",
-    hook2: "A reluctant hero with a very opinionated dragon.",
-    hook3: "The last door home may already be closing.",
-    ingredients: ["spiced chai", "orange peel"],
-    match_tags: ["fantasy", "adventure", "escape", "fast", "witty"],
-    status: "available",
-    matched_by: null,
-    created_at: new Date().toISOString(),
-    owner_email: "reader3@example.com",
-    owner_name: "Mina",
-  },
-];
+const deriveTemporaryMatchTags = (
+  listing: CommunityShelfListingDto,
+): string[] => {
+  const searchableText = [...listing.hooks, ...listing.ingredients]
+    .join(" ")
+    .toLowerCase();
+  const tagRules: Array<[string, string[]]> = [
+    ["mystery", ["secret", "watching", "hidden"]],
+    ["tense", ["war", "closing", "watching"]],
+    ["secrets", ["secret", "hidden"]],
+    ["atmospheric", ["woods", "midnight", "garden"]],
+    ["twisty", ["secret", "impossible"]],
+    ["romance", ["soulmate", "enemies"]],
+    ["heartfelt", ["soulmate", "heart"]],
+    ["adventure", ["kingdom", "dragon", "map", "horse"]],
+    ["character", ["hero", "protagonist"]],
+    ["slow-burn", ["enemies", "lavender"]],
+    ["fantasy", ["dragon", "kingdom", "impossible"]],
+    ["escape", ["door", "dragon", "kingdom"]],
+    ["fast", ["closing", "war"]],
+    ["witty", ["opinionated"]],
+    ["cozy", ["honey", "matcha", "chai"]],
+    ["hopeful", ["summer", "garden"]],
+  ];
+
+  return tagRules
+    .filter(([, keywords]) =>
+      keywords.some((keyword) => searchableText.includes(keyword)),
+    )
+    .map(([tag]) => tag);
+};
+
+const toListing = (listing: CommunityShelfListingDto): Listing => ({
+  id: String(listing.id),
+  user_id: listing.isOwner ? "current" : "",
+  cover_color: listing.coverColor,
+  emoji: listing.emoji,
+  hook1: listing.hooks[0],
+  hook2: listing.hooks[1],
+  hook3: listing.hooks[2],
+  publication_year: listing.publicationYear,
+  ingredients: listing.ingredients,
+  match_tags: deriveTemporaryMatchTags(listing),
+  status: listing.status.toLowerCase(),
+  matched_by: null,
+  created_at: listing.createdAt,
+  owner_name: listing.owner.displayName,
+  is_owner: listing.isOwner,
+});
 
 const tilts = ["-rotate-1", "rotate-1", "-rotate-[0.5deg]", "rotate-[0.5deg]"];
 
 const CommunityShelf = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [listings, setListings] = useState<Listing[]>(MOCK_LISTINGS);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
+  const [listingsError, setListingsError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showMatcher, setShowMatcher] = useState(false);
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [matchedContact, setMatchedContact] = useState<{
-    email: string;
+    email?: string;
     name?: string;
   } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
-      // Frontend preview mode: auth redirect will be re-enabled with backend integration.
-      // navigate("/auth");
+      navigate("/auth");
     }
   }, [user, loading, navigate]);
 
-  const loadListings = () => {
-    if (listings.length === 0) setListings(MOCK_LISTINGS);
-  };
+  const loadListings = useCallback(async (signal?: AbortSignal) => {
+    await Promise.resolve();
+    if (signal?.aborted) return;
+    setIsLoadingListings(true);
+    setListingsError(null);
 
-  const handleMatch = (listing: ShelfMatchListing) => {
+    try {
+      const response = await fetchCommunityShelfListings(signal);
+      setListings(response.map(toListing));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setListingsError(
+        error instanceof Error ? error.message : "Could not load the shelf",
+      );
+    } finally {
+      if (!signal?.aborted) setIsLoadingListings(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchCommunityShelfListings(controller.signal)
+      .then((response) => setListings(response.map(toListing)))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setListingsError(
+          error instanceof Error ? error.message : "Could not load the shelf",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingListings(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const handleMatch = async (listing: ShelfMatchListing) => {
     const fullListing = listings.find((item) => item.id === listing.id);
     if (!fullListing) return;
 
-    setListings((current) =>
-      current.map((item) =>
-        item.id === fullListing.id
-          ? { ...item, status: "matched", matched_by: user?.id || "local-user" }
-          : item,
-      ),
-    );
-    setShowMatcher(false);
-    setMatchedContact({
-      email: fullListing.owner_email || "reader@example.com",
-      name: fullListing.owner_name || "A fellow reader",
-    });
-    toast.success("Shelf match saved to your library 📖");
+    try {
+      const match = await claimShelfListing(
+        Number(fullListing.id),
+        fullListing.match_tags,
+      );
+      setListings((current) =>
+        current.filter((item) => item.id !== fullListing.id),
+      );
+      setRevealedId(null);
+      setShowMatcher(false);
+      setMatchedContact({
+        name: match.owner.displayName,
+      });
+      toast.success("Exchange request sent 📖");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not claim this book");
+      void loadListings();
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setListings((current) => current.filter((listing) => listing.id !== id));
-    toast("Book removed from the shelf ♡");
+  const handleDelete = async (id: string) => {
+    try {
+      await removeShelfListing(Number(id));
+      setListings((current) => current.filter((listing) => listing.id !== id));
+      setRevealedId(null);
+      toast("Book removed from the shelf ♡");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not remove the book");
+    }
   };
 
   if (loading) return null;
 
   const availableListings = listings.filter((listing) => listing.status === "available");
+  const matchableListings = availableListings.filter((listing) => !listing.is_owner);
 
   return (
-    <div className="paper-texture relative min-h-screen px-4 py-8 sm:py-10">
+    <div className="paper-texture relative min-h-screen px-4 pb-24 pt-32 sm:pb-10">
       <div className="pointer-events-none fixed bottom-0 left-3 top-0 hidden flex-col justify-center gap-8 sm:flex">
         {[...Array(8)].map((_, index) => (
           <div key={index} className="h-4 w-4 rounded-full border-2 border-border bg-background" />
         ))}
       </div>
       <div className="pointer-events-none fixed bottom-0 left-12 top-0 hidden w-px bg-dusty-rose/20 sm:block" />
-
-      <header className="mx-auto mb-8 flex max-w-5xl items-center justify-between pl-2 sm:pl-10">
-        <Link to="/" className="font-handwritten text-lg text-muted-foreground transition hover:text-primary">
-          ← Find My Next Read
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link to="/library" className="font-handwritten text-lg text-muted-foreground transition hover:text-primary">
-            My Library
-          </Link>
-          <button onClick={signOut} className="font-handwritten text-base text-muted-foreground transition hover:text-primary">
-            sign out
-          </button>
-        </div>
-      </header>
 
       <main className="mx-auto max-w-5xl pl-2 sm:pl-10">
         <motion.div
@@ -167,7 +202,8 @@ const CommunityShelf = () => {
             whileHover={{ y: -3, rotate: -0.3 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setShowMatcher(true)}
-            className="dog-ear relative rounded-sm border-2 border-primary/30 bg-primary p-6 text-left text-primary-foreground shadow-journal transition hover:shadow-warm"
+            disabled={isLoadingListings || matchableListings.length === 0}
+            className="dog-ear relative rounded-sm border-2 border-primary/30 bg-primary p-6 text-left text-primary-foreground shadow-journal transition hover:shadow-warm disabled:cursor-not-allowed disabled:opacity-60"
           >
             <div className="absolute -top-2.5 left-8 h-5 w-16 -rotate-3 rounded-sm bg-washi-gold/70" />
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -176,7 +212,9 @@ const CommunityShelf = () => {
             </div>
             <span className="block font-handwritten text-3xl">Find a Shelf Match</span>
             <span className="mt-1 block font-body text-sm italic opacity-85">
-              Answer 3 quick questions and pair with one of {availableListings.length} available shared books.
+              {isLoadingListings
+                ? "Checking the shelf for available books..."
+                : `Answer 3 quick questions and pair with one of ${matchableListings.length} available shared books.`}
             </span>
           </motion.button>
 
@@ -208,14 +246,36 @@ const CommunityShelf = () => {
           <span className="shrink-0 font-handwritten text-sm text-muted-foreground">{availableListings.length} available</span>
         </div>
 
-        {listings.length === 0 ? (
+        {isLoadingListings ? (
+          <div className="mt-14 text-center" role="status">
+            <p className="animate-pulse font-handwritten text-2xl text-muted-foreground">
+              Dusting off the shelf pages…
+            </p>
+          </div>
+        ) : listingsError ? (
+          <div className="mx-auto mt-14 max-w-md rounded-sm border border-dashed border-destructive/40 bg-card/70 p-6 text-center">
+            <p className="font-handwritten text-2xl text-foreground">
+              The shelf couldn’t be opened
+            </p>
+            <p className="mt-1 font-body text-sm italic text-muted-foreground">
+              {listingsError}
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadListings()}
+              className="mt-4 rounded-sm bg-primary px-5 py-2 font-handwritten text-lg text-primary-foreground"
+            >
+              Try again
+            </button>
+          </div>
+        ) : listings.length === 0 ? (
           <p className="mt-16 text-center font-handwritten text-2xl text-muted-foreground/60">
             The shelf is empty… be the first to wrap a book ♡
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {listings.map((listing, index) => {
-              const isOwn = Boolean(user && listing.user_id === user.id);
+              const isOwn = listing.is_owner;
               const isMatched = listing.status === "matched";
               const revealed = revealedId === listing.id;
 
@@ -268,12 +328,17 @@ const CommunityShelf = () => {
                             tea notes: {listing.ingredients.join(" · ")}
                           </p>
                         )}
+                        {listing.publication_year && (
+                          <p className="mb-3 font-handwritten text-xs text-muted-foreground/70">
+                            first published: {listing.publication_year}
+                          </p>
+                        )}
                         <div className="flex gap-2">
                           <button type="button" onClick={() => setRevealedId(null)} className="flex-1 rounded-sm border border-border py-2 font-handwritten text-base hover:bg-secondary">
                             Pass
                           </button>
                           {isOwn ? (
-                            <button type="button" onClick={() => handleDelete(listing.id)} className="flex-1 rounded-sm border border-destructive/30 py-2 font-handwritten text-base text-destructive">
+                            <button type="button" onClick={() => void handleDelete(listing.id)} className="flex-1 rounded-sm border border-destructive/30 py-2 font-handwritten text-base text-destructive">
                               Remove
                             </button>
                           ) : isMatched ? (
@@ -296,14 +361,14 @@ const CommunityShelf = () => {
 
       <AnimatePresence>
         {showMatcher && (
-          <CommunityMatchFinder listings={listings} onClose={() => setShowMatcher(false)} onMatch={handleMatch} />
+          <CommunityMatchFinder listings={matchableListings} onClose={() => setShowMatcher(false)} onMatch={handleMatch} />
         )}
         {showForm && (
           <ListBookForm
             onClose={() => setShowForm(false)}
             onCreated={() => {
               setShowForm(false);
-              loadListings();
+              void loadListings();
             }}
           />
         )}
@@ -328,10 +393,23 @@ const CommunityShelf = () => {
               <p className="mb-3 text-5xl">💌</p>
               <p className="mb-1 font-handwritten text-base uppercase tracking-widest text-primary">Community Shelf Match</p>
               <h2 id="match-contact-title" className="mb-2 font-handwritten text-3xl">It’s a match!</h2>
-              <p className="mb-4 font-body italic text-muted-foreground">
-                Reach out to {matchedContact.name || "your fellow reader"} to arrange the exchange:
-              </p>
-              <p className="mb-5 break-all font-handwritten text-2xl text-primary">{matchedContact.email}</p>
+              {matchedContact.email ? (
+                <>
+                  <p className="mb-4 font-body italic text-muted-foreground">
+                    Reach out to {matchedContact.name || "your fellow reader"} to arrange the exchange:
+                  </p>
+                  <p className="mb-5 break-all font-handwritten text-2xl text-primary">
+                    {matchedContact.email}
+                  </p>
+                </>
+              ) : (
+                <p className="mb-5 font-body italic text-muted-foreground">
+                  Your request was sent to {matchedContact.name || "the book owner"}. Contact details will unlock after they accept it. Track the request in My Exchanges.
+                </p>
+              )}
+              <Link to="/exchanges" onClick={() => setMatchedContact(null)} className="mr-2 inline-block rounded-sm border border-border px-6 py-2 font-handwritten text-xl text-primary">
+                My Exchanges
+              </Link>
               <button type="button" onClick={() => setMatchedContact(null)} className="rounded-sm bg-primary px-6 py-2 font-handwritten text-xl text-primary-foreground">
                 Lovely ♡
               </button>

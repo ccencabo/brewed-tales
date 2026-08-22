@@ -4,6 +4,9 @@ import WrappedBookSVG from "./WrappedBookSVG";
 import ReceiptOfFate from "./ReceiptOfFate";
 import { toast } from "sonner";
 import type { Book } from "@/data/books";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { saveRecommendedBook } from "../lib/library";
 
 interface BlindDateRevealProps {
   books: Book[];
@@ -28,18 +31,40 @@ const BlindDateReveal = ({
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [receiptBook, setReceiptBook] = useState<Book | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSave = (book: Book) => {
+  const handleSave = async (book: Book) => {
+    if (!user) {
+      toast.info("Log in to save books to your library");
+      navigate("/login", { state: { from: "/" } });
+      return;
+    }
     if (savedIds.has(book.id)) {
       toast("Already in your library ♡");
       return;
     }
-    setSavedIds((s) => new Set(s).add(book.id));
-    toast.success("Saved to your library 📖");
+
+    try {
+      await saveRecommendedBook({
+        externalBookId: book.id,
+        title: book.title,
+        author: book.author,
+        emoji: book.emoji,
+        coverColor: book.coverColor,
+        coverUrl: book.coverUrl,
+        clues: [book.clue1, book.clue2, book.clue3],
+        ingredients,
+      });
+      setSavedIds((current) => new Set(current).add(book.id));
+      toast.success("Saved to your library 📖");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save this book");
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-12 paper-texture relative">
+    <div className="min-h-screen flex flex-col items-center px-4 pb-24 pt-32 paper-texture relative">
       {/* Notebook edges */}
       <div className="fixed left-3 top-0 bottom-0 flex flex-col justify-center gap-8 pointer-events-none">
         {[...Array(8)].map((_, i) => (
@@ -206,7 +231,7 @@ const BlindDateReveal = ({
                           This Is My Next Read 💘
                         </button>
                         <button
-                          onClick={() => handleSave(book)}
+                          onClick={() => void handleSave(book)}
                           title="Save to your library"
                           className={`px-3 py-2.5 rounded-sm border font-handwritten text-xl transition-all duration-200 hover:-translate-y-0.5
                             ${savedIds.has(book.id) ? "bg-washi-pink/40 border-dusty-rose/40 text-foreground" : "bg-card border-border hover:bg-secondary"}`}

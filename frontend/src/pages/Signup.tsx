@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, User as UserIcon, ArrowLeft } from "lucide-react";
+import { authErrorMessage } from "../lib/auth";
 
 const signupSchema = z
   .object({
     displayName: z.string().trim().min(1, "Display name is required").max(50),
     email: z.string().trim().email("Please enter a valid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -20,7 +21,7 @@ const signupSchema = z
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, register } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +38,7 @@ const Signup = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/community");
+      navigate("/", { replace: true });
     }
   }, [user, navigate]);
 
@@ -69,8 +70,8 @@ const Signup = () => {
         setPasswordError("");
         return;
       }
-      if (val.length < 6) {
-        setPasswordError("Must be at least 6 characters");
+      if (val.length < 8) {
+        setPasswordError("Must be at least 8 characters");
       } else {
         setPasswordError("");
       }
@@ -116,23 +117,15 @@ const Signup = () => {
     }
 
     setLoading(true);
-
-    // Simulate network delay for authentication
-    setTimeout(() => {
+    try {
+      await register({ email, displayName, password });
+      toast.success("Your library card is ready ✨");
+      navigate("/", { replace: true });
+    } catch (error) {
+      toast.error(authErrorMessage(error));
+    } finally {
       setLoading(false);
-      toast.success("Account created locally! Welcome ✨");
-      navigate("/community");
-    }, 1200);
-  };
-
-  const handleGoogleSignUp = () => {
-    toast.info("Connecting to Google OAuth...", {
-      description: "Redirecting you to Google signup portal",
-    });
-    setTimeout(() => {
-      toast.success("Successfully signed up with Google ✨");
-      navigate("/community");
-    }, 1500);
+    }
   };
 
   return (
@@ -189,9 +182,10 @@ const Signup = () => {
 
           {/* Social Authentication Container */}
           <button
-            onClick={handleGoogleSignUp}
-            className="w-full py-2.5 rounded-sm border border-border bg-background hover:bg-secondary/40
-              font-handwritten text-lg mb-4 flex items-center justify-center gap-3 transition shadow-sm hover:shadow-md active:scale-[0.99]"
+            type="button"
+            disabled
+            title="Google sign-in will be added after the core account flow"
+            className="mb-4 flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-sm border border-border bg-background/60 py-2.5 font-handwritten text-lg opacity-60 shadow-sm"
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
               <path
@@ -211,14 +205,14 @@ const Signup = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
               />
             </svg>
-            <span className="mt-0.5">Sign up with Google</span>
+            <span className="mt-0.5">Google sign-in · coming later</span>
           </button>
 
           {/* Cozy Separator */}
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs font-handwritten text-muted-foreground italic">
-              or write your details
+              create an account with email
             </span>
             <div className="flex-1 h-px bg-border" />
           </div>

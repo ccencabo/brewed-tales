@@ -46,6 +46,32 @@ const questions: QuizQuestion[] = [
     ],
   },
   {
+    id: "era",
+    question: "How aged should the pages feel?",
+    subtitle: "Choose the publication era for your matches",
+    brewingLabel: "Checking the library date…",
+    options: [
+      {
+        label: "Classics — before 2000",
+        value: "classic",
+        emoji: "⌛",
+        ingredientLabel: "Aged parchment",
+      },
+      {
+        label: "Newer stories — 2000 onward",
+        value: "recent",
+        emoji: "🌱",
+        ingredientLabel: "Fresh-cut pages",
+      },
+      {
+        label: "A blend of both — any era",
+        value: "any",
+        emoji: "📚",
+        ingredientLabel: "A timeless blend",
+      },
+    ],
+  },
+  {
     id: "mood",
     question: "One last drop for the mood?",
     subtitle: "How do you want to feel?",
@@ -100,7 +126,7 @@ const QuizScreen = ({ onComplete }: QuizScreenProps) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 paper-texture relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 pb-24 pt-32 paper-texture relative overflow-hidden">
       {/* Notebook spiral holes */}
       <div className="fixed left-3 top-0 bottom-0 flex flex-col justify-center gap-8 pointer-events-none">
         {[...Array(8)].map((_, i) => (

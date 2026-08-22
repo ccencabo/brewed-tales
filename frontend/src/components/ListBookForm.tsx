@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { z } from "zod";
 import WrappedBookSVG from "./WrappedBookSVG";
 import { toast } from "sonner";
+import { createShelfListing } from "../lib/communityShelf";
 
 const colors = [
   { id: "bg-primary", label: "Rust" },
@@ -22,11 +23,21 @@ const ingredients = [
   "cinnamon",
   "vanilla",
 ];
+const currentYear = new Date().getFullYear();
 
 const schema = z.object({
   hook1: z.string().trim().min(5, "Hook too short").max(180),
   hook2: z.string().trim().min(5, "Hook too short").max(180),
   hook3: z.string().trim().min(5, "Hook too short").max(180),
+  publicationYear: z
+    .string()
+    .trim()
+    .regex(/^\d{4}$/, "Enter a four-digit publication year")
+    .transform(Number)
+    .refine(
+      (year) => year >= 1000 && year <= currentYear,
+      `Year must be between 1000 and ${currentYear}`,
+    ),
 });
 
 interface Props {
@@ -40,6 +51,7 @@ const ListBookForm = ({ onClose, onCreated }: Props) => {
   const [hook1, setHook1] = useState("");
   const [hook2, setHook2] = useState("");
   const [hook3, setHook3] = useState("");
+  const [publicationYear, setPublicationYear] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -47,7 +59,7 @@ const ListBookForm = ({ onClose, onCreated }: Props) => {
     setPicked((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]));
 
   const submit = async () => {
-    const parsed = schema.safeParse({ hook1, hook2, hook3 });
+    const parsed = schema.safeParse({ hook1, hook2, hook3, publicationYear });
     if (!parsed.success) {
       toast.error(parsed.error.errors[0].message);
       return;
@@ -55,12 +67,21 @@ const ListBookForm = ({ onClose, onCreated }: Props) => {
 
     setSaving(true);
 
-    // Simulate network delay for the saving state
-    setTimeout(() => {
+    try {
+      await createShelfListing({
+        coverColor: color,
+        emoji,
+        hooks: [hook1.trim(), hook2.trim(), hook3.trim()],
+        publicationYear: parsed.data.publicationYear,
+        ingredients: picked,
+      });
       setSaving(false);
       toast.success("Listed on the shelf ✨");
       onCreated();
-    }, 600);
+    } catch (error) {
+      setSaving(false);
+      toast.error(error instanceof Error ? error.message : "Could not list the book");
+    }
   };
 
   return (
@@ -129,6 +150,28 @@ const ListBookForm = ({ onClose, onCreated }: Props) => {
                   </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <label
+                htmlFor="publication-year"
+                className="mb-1 block font-handwritten text-base"
+              >
+                publication year
+              </label>
+              <input
+                id="publication-year"
+                type="number"
+                inputMode="numeric"
+                min={1000}
+                max={currentYear}
+                value={publicationYear}
+                onChange={(event) => setPublicationYear(event.target.value)}
+                placeholder="e.g. 1994"
+                className="w-full rounded-sm border border-border bg-background px-3 py-2 font-body text-sm"
+              />
+              <p className="mt-1 font-body text-xs italic text-muted-foreground">
+                This helps readers choose classics or newer stories.
+              </p>
             </div>
           </div>
         </div>

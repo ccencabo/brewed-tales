@@ -6,6 +6,24 @@ const BASE_URL = "https://www.googleapis.com/books/v1/volumes";
 
 const cozyColors = ["bg-washi-pink/10", "bg-washi-mint/10", "bg-washi-gold/10"];
 
+interface GoogleBooksItem {
+  id: string;
+  volumeInfo: {
+    title?: string;
+    authors?: string[];
+    description?: string;
+    pageCount?: number;
+    publishedDate?: string;
+    categories?: string[];
+    imageLinks?: {
+      thumbnail?: string;
+      smallThumbnail?: string;
+    };
+  };
+}
+
+type EraPreference = "classic" | "recent" | "any";
+
 const keywordMap: Record<string, string> = {
   fast: "thrilling",
   slow: "epic",
@@ -34,53 +52,60 @@ export const fetchMatchesFromAnswers = async (
   const pacingKeyword = keywordMap[answers.pacing] || "";
   const priorityKeyword = keywordMap[answers.priority] || "";
   const moodKeyword = keywordMap[answers.mood] || "";
+  const eraPreference: EraPreference =
+    answers.era === "classic" || answers.era === "recent"
+      ? answers.era
+      : "any";
+  const eraKeyword = eraPreference === "classic" ? "classic" : "";
 
   const queryParts = [`subject:${genre}`];
   if (moodKeyword) queryParts.push(moodKeyword);
   if (priorityKeyword) queryParts.push(priorityKeyword);
   if (pacingKeyword) queryParts.push(pacingKeyword);
+  if (eraKeyword) queryParts.push(eraKeyword);
 
-  let targetQuery = queryParts.join(" ");
-  let items = await executeFetch(targetQuery);
+  const orderBy = eraPreference === "recent" ? "newest" : "relevance";
+  const matchesEra = (item: GoogleBooksItem) => {
+    if (eraPreference === "any") return true;
+    const publishedYear = Number.parseInt(
+      item.volumeInfo.publishedDate?.slice(0, 4) ?? "",
+      10,
+    );
+    if (!Number.isFinite(publishedYear)) return false;
+    return eraPreference === "classic"
+      ? publishedYear < 2000
+      : publishedYear >= 2000;
+  };
 
-  // NEW: Filter out books the user has already seen
-  if (items) items = items.filter((item: any) => !excludeIds.includes(item.id));
+  const queries = [
+    queryParts.join(" "),
+    [`subject:${genre}`, moodKeyword, eraKeyword].filter(Boolean).join(" "),
+    [`subject:${genre}`, eraKeyword].filter(Boolean).join(" "),
+  ];
+  const items: GoogleBooksItem[] = [];
 
-  // Strategy 2 (Safety Net)
-  if (!items || items.length < 3) {
-    targetQuery = `subject:${genre} ${moodKeyword}`.trim();
-    const moreItems = await executeFetch(targetQuery);
-    if (moreItems) {
-      // Filter the new batch too, then combine them
-      const filteredMore = moreItems.filter(
-        (item: any) => !excludeIds.includes(item.id),
+  for (const query of [...new Set(queries)]) {
+    const batch = await executeFetch(query, orderBy);
+    if (batch) {
+      items.push(
+        ...batch.filter(
+          (item) => !excludeIds.includes(item.id) && matchesEra(item),
+        ),
       );
-      items = [...(items || []), ...filteredMore];
     }
-  }
-
-  // Strategy 3 (Ultimate Fallback)
-  if (!items || items.length < 3) {
-    targetQuery = `subject:${genre}`;
-    const evenMoreItems = await executeFetch(targetQuery);
-    if (evenMoreItems) {
-      const filteredEvenMore = evenMoreItems.filter(
-        (item: any) => !excludeIds.includes(item.id),
-      );
-      items = [...(items || []), ...filteredEvenMore];
-    }
+    if (items.length >= 3) break;
   }
 
   // NEW: Deduplicate items by ID (just in case our fallback strategies grabbed the same popular book twice)
   const uniqueItems = Array.from(
-    new Map((items || []).map((item: any) => [item.id, item])).values(),
+    new Map(items.map((item) => [item.id, item])).values(),
   );
 
   // Shuffle and grab the top 3
   const shuffled = uniqueItems.sort(() => 0.5 - Math.random()).slice(0, 3);
 
   return Promise.all(
-    shuffled.map(async (item: any, index: number) => {
+    shuffled.map(async (item, index) => {
       const info = item.volumeInfo;
       const pageCount = info.pageCount || Math.floor(Math.random() * 150) + 200;
       const categories = info.categories ? info.categories[0] : genre;
@@ -112,12 +137,15 @@ export const fetchMatchesFromAnswers = async (
 };
 
 // Helper function to handle the direct HTTP call
-const executeFetch = async (queryString: string) => {
+const executeFetch = async (
+  queryString: string,
+  orderBy: "relevance" | "newest",
+): Promise<GoogleBooksItem[] | null> => {
   try {
-    const url = `${BASE_URL}?q=${encodeURIComponent(queryString)}&maxResults=12&langRestrict=en&printType=books&key=${API_KEY}`;
+    const url = `${BASE_URL}?q=${encodeURIComponent(queryString)}&maxResults=40&langRestrict=en&printType=books&orderBy=${orderBy}&key=${API_KEY}`;
     const response = await fetch(url);
     if (!response.ok) return null;
-    const data = await response.json();
+    const data = (await response.json()) as { items?: GoogleBooksItem[] };
     return data.items || null;
   } catch (error) {
     console.error("Fetch instance failed:", error);

@@ -1,257 +1,198 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../hooks/useAuth";
-import WrappedBookSVG from "../components/WrappedBookSVG";
+import { AnimatePresence, motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-
-interface Save {
-  id: string;
-  kind: "blind_date" | "shelf_match";
-  book_id: string | null;
-  title: string | null;
-  author: string | null;
-  emoji: string | null;
-  cover_color: string | null;
-  clue1: string | null;
-  clue2: string | null;
-  clue3: string | null;
-  ingredients: string[];
-  shelf_listing_id: string | null;
-  owner_email: string | null;
-  owner_name: string | null;
-  hooks: string[];
-  created_at: string;
-}
-
-// Mock data to populate the library for local testing
-const MOCK_SAVES: Save[] = [
-  {
-    id: "1",
-    kind: "blind_date",
-    book_id: "book-1",
-    title: "The Night Circus",
-    author: "Erin Morgenstern",
-    emoji: "🎪",
-    cover_color: "bg-sage",
-    clue1: "A magical competition between two illusionists.",
-    clue2: "A circus that only arrives without warning.",
-    clue3: "A love story written in the stars.",
-    ingredients: ["earl grey", "vanilla"],
-    shelf_listing_id: null,
-    owner_email: null,
-    owner_name: null,
-    hooks: [],
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    kind: "shelf_match",
-    book_id: null,
-    title: null,
-    author: null,
-    emoji: "☕",
-    cover_color: "bg-warm",
-    clue1: null,
-    clue2: null,
-    clue3: null,
-    ingredients: ["cinnamon", "honey"],
-    shelf_listing_id: "shelf-1",
-    owner_email: "fellowreader@example.com",
-    owner_name: "Oliver",
-    hooks: [
-      "A cozy coffee shop in a rainy city.",
-      "A grumpy barista with a heart of gold.",
-      "A sunny regular who won't stop talking.",
-    ],
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
+import WrappedBookSVG from "../components/WrappedBookSVG";
+import {
+  fetchLibrary,
+  removeLibrarySave,
+  type LibrarySave,
+} from "../lib/library";
 
 const tilts = ["-rotate-1", "rotate-1", "-rotate-[0.5deg]", "rotate-[0.5deg]"];
 
 const Library = () => {
-  const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [saves, setSaves] = useState<Save[]>(MOCK_SAVES);
+  const [saves, setSaves] = useState<LibrarySave[]>([]);
   const [tab, setTab] = useState<"all" | "blind_date" | "shelf_match">("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      // You can uncomment this if you want strict redirecting
-      // navigate("/auth");
-    }
-  }, [user, loading, navigate]);
+    const controller = new AbortController();
 
-  const remove = (id: string) => {
-    // Simulate removing from the backend by updating local state
-    setSaves((s) => s.filter((x) => x.id !== id));
-    toast.success("Removed from library");
+    fetchLibrary(controller.signal)
+      .then(setSaves)
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setError(reason instanceof Error ? reason.message : "Could not load your library");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const remove = async (save: LibrarySave) => {
+    try {
+      await removeLibrarySave(save);
+      setSaves((current) => current.filter((item) => item.id !== save.id));
+      toast.success(
+        save.kind === "shelf_match"
+          ? "Shelf match cancelled and returned to the shelf"
+          : "Removed from library",
+      );
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Could not remove this item");
+    }
   };
 
-  if (loading) return null;
-
-  const filtered = saves.filter((s) => tab === "all" || s.kind === tab);
+  const filtered = saves.filter((save) => tab === "all" || save.kind === tab);
 
   return (
-    <div className="min-h-screen paper-texture px-4 py-10 relative">
-      <div className="fixed left-3 top-0 bottom-0 flex flex-col justify-center gap-8 pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="w-4 h-4 rounded-full border-2 border-border bg-background"
-          />
+    <div className="paper-texture relative min-h-screen px-4 pb-24 pt-32 sm:pb-10">
+      <div className="pointer-events-none fixed bottom-0 left-3 top-0 flex flex-col justify-center gap-8">
+        {[...Array(8)].map((_, index) => (
+          <div key={index} className="h-4 w-4 rounded-full border-2 border-border bg-background" />
         ))}
       </div>
-      <div className="fixed left-12 top-0 bottom-0 w-px bg-dusty-rose/20 pointer-events-none" />
-
-      <header className="max-w-5xl mx-auto flex justify-between items-center mb-8">
-        <Link
-          to="/"
-          className="font-handwritten text-lg text-muted-foreground hover:text-primary"
-        >
-          ← home
-        </Link>
-        <button
-          onClick={signOut}
-          className="font-handwritten text-base text-muted-foreground hover:text-primary"
-        >
-          sign out
-        </button>
-      </header>
+      <div className="pointer-events-none fixed bottom-0 left-12 top-0 w-px bg-dusty-rose/20" />
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8 max-w-2xl mx-auto"
+        className="mx-auto mb-8 max-w-2xl text-center"
       >
-        <p className="font-handwritten text-lg text-muted-foreground/60">
-          ~ your collection ~
-        </p>
-        <h1 className="font-handwritten text-5xl md:text-6xl text-foreground">
-          My Little Library
-        </h1>
-        <div className="journal-divider w-56 mx-auto my-3" />
+        <p className="font-handwritten text-lg text-muted-foreground/60">~ your collection ~</p>
+        <h1 className="font-handwritten text-5xl text-foreground md:text-6xl">My Little Library</h1>
+        <div className="journal-divider mx-auto my-3 w-56" />
         <p className="font-body italic text-muted-foreground">
           Your recommended reads and community exchanges, pressed between these pages.
         </p>
       </motion.div>
 
-      <div className="max-w-3xl mx-auto flex justify-center gap-2 mb-10 font-handwritten text-xl">
-        {(["all", "blind_date", "shelf_match"] as const).map((t) => (
+      <div className="mx-auto mb-10 flex max-w-3xl justify-center gap-2 font-handwritten text-xl">
+        {(["all", "blind_date", "shelf_match"] as const).map((itemTab) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-sm border transition ${
-              tab === t
-                ? "bg-primary text-primary-foreground border-primary/30 shadow-journal"
-                : "bg-card border-border hover:bg-secondary"
+            key={itemTab}
+            onClick={() => setTab(itemTab)}
+            className={`rounded-sm border px-4 py-1.5 transition ${
+              tab === itemTab
+                ? "border-primary/30 bg-primary text-primary-foreground shadow-journal"
+                : "border-border bg-card hover:bg-secondary"
             }`}
           >
-            {t === "all"
+            {itemTab === "all"
               ? "All ♡"
-              : t === "blind_date"
+              : itemTab === "blind_date"
                 ? "Next Reads ✦"
                 : "Shelf Exchanges 📚"}
           </button>
         ))}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-center mt-20">
-          <p className="font-handwritten text-2xl text-muted-foreground/60 mb-3">
-            No pressed flowers here yet…
-          </p>
-          <Link
-            to="/"
-            className="font-handwritten text-xl text-primary underline underline-offset-4"
-          >
+      {loading ? (
+        <p className="mt-20 animate-pulse text-center font-handwritten text-2xl text-muted-foreground">
+          Opening your library...
+        </p>
+      ) : error ? (
+        <div className="mx-auto mt-16 max-w-md rounded-sm border border-dashed border-destructive/40 bg-card p-6 text-center">
+          <p className="font-handwritten text-2xl text-foreground">The library could not be opened</p>
+          <p className="mt-2 font-body text-sm italic text-muted-foreground">{error}</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="mt-20 text-center">
+          <p className="mb-3 font-handwritten text-2xl text-muted-foreground/60">No pressed flowers here yet…</p>
+          <Link to="/" className="font-handwritten text-xl text-primary underline underline-offset-4">
             find your next read →
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3">
           <AnimatePresence>
-            {filtered.map((s, i) => (
-              <motion.div
-                key={s.id}
+            {filtered.map((save, index) => (
+              <motion.article
+                key={save.id}
                 layout
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: i * 0.04 }}
-                className={`relative bg-card rounded-sm shadow-journal border border-border p-5 dog-ear ${tilts[i % tilts.length]}`}
+                transition={{ delay: index * 0.04 }}
+                className={`dog-ear relative rounded-sm border border-border bg-card p-5 shadow-journal ${tilts[index % tilts.length]}`}
               >
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-16 h-5 rounded-sm bg-washi-pink/40" />
+                <div className="absolute -top-2.5 left-1/2 h-5 w-16 -translate-x-1/2 rounded-sm bg-washi-pink/40" />
 
-                <div className="flex justify-center mb-3 mt-1">
-                  <div className="scale-75 origin-top">
-                    <WrappedBookSVG
-                      color={s.cover_color || "bg-primary"}
-                      emoji={s.emoji || "📖"}
-                      className="w-28 h-40 drop-shadow"
+                <div className="mb-3 mt-1 flex justify-center">
+                  {save.cover_url ? (
+                    <img
+                      src={save.cover_url}
+                      alt={save.title ? `Cover of ${save.title}` : "Saved book cover"}
+                      className="h-40 w-28 rounded-sm object-cover shadow-md"
                     />
-                  </div>
+                  ) : (
+                    <div className="origin-top scale-75">
+                      <WrappedBookSVG
+                        color={save.cover_color || "bg-primary"}
+                        emoji={save.emoji || "📖"}
+                        className="h-40 w-28 drop-shadow"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {s.kind === "blind_date" ? (
+                {save.kind === "blind_date" ? (
                   <>
-                    <h3 className="font-handwritten text-xl text-center text-foreground leading-tight">
-                      {s.title}
-                    </h3>
-                    <p className="text-xs italic text-center text-muted-foreground mb-2">
-                      by {s.author}
-                    </p>
+                    <h2 className="text-center font-handwritten text-xl leading-tight text-foreground">{save.title}</h2>
+                    <p className="mb-2 text-center text-xs italic text-muted-foreground">by {save.author}</p>
                   </>
                 ) : (
-                  <p className="text-center font-handwritten text-base text-muted-foreground mb-2">
-                    from {s.owner_name || "a reader"}
+                  <p className="mb-2 text-center font-handwritten text-base text-muted-foreground">
+                    from {save.owner_name || "a reader"}
                   </p>
                 )}
 
                 <div className="journal-divider mb-2" />
-
                 <div className="space-y-1.5">
-                  {(s.kind === "blind_date"
-                    ? [s.clue1, s.clue2, s.clue3]
-                    : s.hooks
+                  {(save.kind === "blind_date"
+                    ? [save.clue1, save.clue2, save.clue3]
+                    : save.hooks
                   )
                     .filter(Boolean)
-                    .map((line, li) => (
-                      <p
-                        key={li}
-                        className="text-xs font-body italic text-muted-foreground flex gap-2"
-                      >
-                        <span className="text-accent font-handwritten">✦</span>{" "}
-                        {line}
+                    .map((line, lineIndex) => (
+                      <p key={lineIndex} className="flex gap-2 font-body text-xs italic text-muted-foreground">
+                        <span className="font-handwritten text-accent">✦</span> {line}
                       </p>
                     ))}
                 </div>
 
-                {s.ingredients.length > 0 && (
-                  <p className="text-[10px] font-handwritten text-muted-foreground/70 mt-2">
-                    tea: {s.ingredients.join(" · ")}
+                {save.ingredients.length > 0 && (
+                  <p className="mt-2 font-handwritten text-[10px] text-muted-foreground/70">
+                    tea: {save.ingredients.join(" · ")}
                   </p>
                 )}
 
-                {s.kind === "shelf_match" && s.owner_email && (
-                  <p className="text-xs font-handwritten text-primary break-all mt-2 text-center">
-                    💌 {s.owner_email}
+                {save.kind === "shelf_match" && save.owner_email && (
+                  <p className="mt-2 break-all text-center font-handwritten text-xs text-primary">
+                    💌 {save.owner_email}
                   </p>
                 )}
 
-                <div className="flex justify-between items-center mt-3 pt-2 border-t border-border/50">
-                  <span className="text-[10px] font-handwritten text-muted-foreground/60 uppercase tracking-wider">
-                    {s.kind === "blind_date" ? "next read" : "shelf exchange"}
+                <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2">
+                  <span className="font-handwritten text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                    {save.kind === "blind_date" ? "next read" : "shelf exchange"}
                   </span>
-                  <button
-                    onClick={() => remove(s.id)}
-                    className="text-xs font-handwritten text-destructive/70 hover:text-destructive"
-                  >
-                    remove
-                  </button>
+                  {save.kind === "shelf_match" && save.exchange_status === "completed" ? (
+                    <span className="font-handwritten text-xs text-primary">completed ✓</span>
+                  ) : (
+                    <button
+                      onClick={() => void remove(save)}
+                      className="font-handwritten text-xs text-destructive/70 hover:text-destructive"
+                    >
+                      {save.kind === "shelf_match" ? "cancel match" : "remove"}
+                    </button>
+                  )}
                 </div>
-              </motion.div>
+              </motion.article>
             ))}
           </AnimatePresence>
         </div>
